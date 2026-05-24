@@ -172,9 +172,9 @@ No Soal | Kunci Jawaban | Bobot Skor
 │ 3  │   AB  │      A        │   2   │  1.0  │ Sebagian
 │ 21 │   AB  │      AB       │   2   │   2   │ ✓ Benar
 │... │ ...   │    ...        │ ...   │ ...   │
-│ 41 │       │    (Kosong)   │   6   │   ?   │ ← ESSAY
-│ 42 │       │    (Kosong)   │   6   │   ?   │ ← ESSAY
-│ 45 │       │    (Kosong)   │   6   │   ?   │ ← ESSAY
+│ 41 │   B   │    (Kosong)   │   6   │   ?   │ ← ESSAY
+│ 42 │   B   │    (Kosong)   │   6   │   ?   │ ← ESSAY
+│ 45 │   B   │    (Kosong)   │   6   │   ?   │ ← ESSAY
 └─────────────────────────────────────────────┘
 ```
 
@@ -213,7 +213,7 @@ No Soal | Kunci Jawaban | Bobot Skor
 ```
 
 **Contoh Koreksi Essay:**
-- **Kunci**: (Kosong)
+- **Kunci**: B
 - **Jawaban Siswa**: "Fotosintesis adalah proses..."
 - **Bobot**: 6 (maksimal)
 - **Guru ubah ke**: 5 (karena jawaban sebagian benar)
