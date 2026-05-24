@@ -1,8 +1,6 @@
 # 📋 **Penjelasan Aplikasi KOREKSI PRO v3.1**
 
-💡 **[Klik di sini untuk membaca panduan penggunaan aplikasi (Buka index.html)](https://github.com/narlan77/KoreksiPro/blob/main/index.html)**
-
-## **Ringkasan Aplikasi**
+💡 **Tentang Koreksi Pro v3.1**
 Aplikasi ini adalah **sistem scoring/koreksi ujian otomatis** yang dirancang untuk mempermudah guru dalam mengoreksi lembar jawaban siswa. Aplikasi bekerja dengan basis **localStorage** (penyimpanan offline) dan mendukung berbagai tipe soal dengan bobot yang berbeda.
 
 ---
