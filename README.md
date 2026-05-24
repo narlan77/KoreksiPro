@@ -62,7 +62,6 @@ No Soal | Kunci Jawaban | Bobot Skor
 36      | BBS           | 3
 41      | B (standar)*  | 6  ← Essay
 ```
-*Catatan: untuk soal esai, kunci jawaban standar adalah B, dengan skor yang dapat disesuaikan di kolom bobot skor, tergantung dengan akurasi jawaban siswa.
 ---
 
 ### **FASE 2️⃣: SCAN & AMBIL DATA JAWABAN SISWA**
