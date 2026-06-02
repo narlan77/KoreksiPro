@@ -54,99 +54,395 @@
     </div>
 
     <script>
-        // State data 40 soal
-        let dataKunci = Array.from({ length: 40 }, (_, i) => ({
-            no: i + 1,
-            kunci: i < 30 ? 'A' : 'ABCDE', // Default 5 karakter untuk 31-40
-            bobot: 1
-        }));
+        let dbNilai = JSON.parse(localStorage.getItem('koreksi_detail_v3')) || [];
+        let dbKunci = JSON.parse(localStorage.getItem('koreksi_kunci_v3')) || {};
+        let dbBobot = JSON.parse(localStorage.getItem('koreksi_bobot_v3')) || {};
+        let tempImportData = []; 
 
-        function renderTabelKunci() {
-            const container = document.getElementById('tabelKunci');
-            container.innerHTML = dataKunci.map((item, index) => {
-                const isMulti = item.no > 30;
-                return `
-                <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                    <td class="py-3 font-bold text-gray-400">#${item.no}</td>
-                    <td class="py-3 text-center">
-                        <input type="text" 
-                               maxlength="${isMulti ? 5 : 1}" 
-                               class="${isMulti ? 'kunci-multi' : 'kunci-reguler'}" 
-                               value="${item.kunci}" 
-                               oninput="this.value = this.value.toUpperCase()"
-                               onchange="updateKunci(this, ${index})">
-                    </td>
-                    <td class="py-3 text-center">
-                        <input type="number" step="0.1" class="bobot-in" 
-                               value="${item.bobot}" 
-                               onchange="updateBobot(${index}, this.value)">
-                    </td>
-                    <td class="py-3 text-right">
-                        <span class="text-[10px] font-bold px-2 py-1 rounded ${isMulti ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}">
-                            ${isMulti ? 'PARTIAL SCORE' : 'SINGLE MATCH'}
-                        </span>
-                    </td>
-                </tr>`;
-            }).join('');
-            updateTotalMaks();
-        }
+        const configSoal = [
+            { range: [1, 20], tipe: 'PG', bobot: 1 },
+            { range: [21, 30], tipe: 'PGK', bobot: 2 },
+            { range: [31, 35], tipe: 'BS', bobot: 3 },
+            { range: [36, 40], tipe: 'BS', bobot: 3 },
+            { range: [41, 45], tipe: 'ES', bobot: 6 }
+        ];
 
-        function updateKunci(el, index) {
-            dataKunci[index].kunci = el.value.toUpperCase();
-            console.log(`Kunci ${index+1} diperbarui: ${dataKunci[index].kunci}`);
-        }
+        function initTable() {
+            const tbody = document.getElementById('containerSoal');
+            let html = '';
+            configSoal.forEach(g => {
+                for(let i=g.range[0]; i<=g.range[1]; i++){
+                    // 3. Matikan tab index pada bobot skor kecuali untuk esai
+                    const isEsai = g.tipe === 'ES';
+                    const tabBobot = isEsai ? "" : 'tabindex="-1"';
 
-        function updateBobot(index, val) {
-            dataKunci[index].bobot = parseFloat(val) || 0;
-            updateTotalMaks();
-        }
-
-        function updateTotalMaks() {
-            const total = dataKunci.reduce((acc, curr) => acc + curr.bobot, 0);
-            document.getElementById('totalMaks').innerText = total.toFixed(1);
-        }
-
-        /**
-         * LOGIKA PENILAIAN BARU:
-         * 1-30: Harus sama persis (1 karakter).
-         * 31-40: Benar sebagian per karakter sesuai urutan (Maks 5 karakter).
-         */
-        function hitungSkorSiswa(jawabanSiswa) {
-            let totalSkor = 0;
-
-            dataKunci.forEach((kunciItem, i) => {
-                const jawab = jawabanSiswa[i] || "";
-                const kunci = kunciItem.kunci || "";
-
-                if (kunciItem.no <= 30) {
-                    // Logika Pilihan Ganda Biasa
-                    if (jawab === kunci) totalSkor += kunciItem.bobot;
-                } else {
-                    // Logika 31-40: Benar Sebagian (Urutan Karakter)
-                    // Bobot dibagi rata per karakter kunci (maks 5)
-                    const charKunci = kunci.split('');
-                    const charJawab = jawab.split('');
-                    const bobotPerKarakter = kunciItem.bobot / 5;
-
-                    charKunci.forEach((char, idx) => {
-                        if (charJawab[idx] === char) {
-                            totalSkor += bobotPerKarakter;
-                        }
-                    });
+                    html += `<tr class="border-b border-gray-50 group hover:bg-blue-50/30 transition-colors">
+                        <td class="p-4 font-bold text-gray-300 text-[10px]">${i}</td>
+                        <td class="p-2"><input type="text" class="kunci-opt text-[10px]" value="${dbKunci[i]||''}" disabled tabindex="-1"></td>
+                        <td class="p-2 text-center">
+                            <input type="text" class="input-opt ans-in shadow-sm border-gray-200" data-no="${i}" data-tipe="${g.tipe}" oninput="hitung()">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" class="bobot-in text-[11px]" data-no="${i}" value="${dbBobot[i]||g.bobot}" oninput="hitung()" ${tabBobot}>
+                        </td>
+                        <td class="p-2 text-center font-black text-blue-600" id="s-${i}">0</td>
+                    </tr>`;
                 }
             });
-
-            return totalSkor;
+            tbody.innerHTML = html;
         }
 
-        function hapusSemuaData() {
-            if(confirm('Reset semua kunci?')) {
-                dataKunci.forEach((d, i) => d.kunci = i < 30 ? 'A' : 'ABCDE');
-                renderTabelKunci();
+function hitung() {
+    let total = 0;
+    document.querySelectorAll('.ans-in').forEach(input => {
+        const no = input.dataset.no;
+        const row = input.closest('tr');
+        const tipe = input.dataset.tipe; // Mengambil langsung dari dataset input
+        const ans = input.value.toUpperCase().replace(/\s+/g, ''); 
+        
+        // Perbaikan selector di sini:
+        // Kunci menggunakan class .kunci-opt
+        const key = row.querySelector('.kunci-opt').value.toUpperCase().replace(/\s+/g, '');
+        // Bobot menggunakan class .bobot-in
+        const rowWeight = parseFloat(row.querySelector('.bobot-in').value) || 0;
+        
+        let skor = 0;
+        if (ans !== "" && key !== "") {
+            if (tipe === 'BS') {
+                // Logika Benar-Salah (BS)
+                let matchCount = 0;
+                const keyArr = key.split('');
+                const ansArr = ans.split('');
+                keyArr.forEach((c, idx) => { if (ansArr[idx] === c) matchCount++; });
+                skor = (matchCount / keyArr.length) * rowWeight;
+            } else if (tipe === 'PGK' || tipe === 'JD') {
+                // Logika Pilihan Ganda Kompleks atau Menjodohkan
+                const keyArr = key.split('');
+                const uniqueAns = [...new Set(ans.split(''))];
+                let matchCount = 0;
+                uniqueAns.forEach(c => { if (keyArr.includes(c)) matchCount++; });
+                skor = (matchCount / keyArr.length) * rowWeight;
+            } else { 
+                // Logika PG Biasa atau Esai (Jika kunci cocok)
+                if (ans === key) skor = rowWeight; 
             }
         }
 
-        renderTabelKunci();
+        const skorTampil = Number.isInteger(skor) ? skor : skor.toFixed(2);
+        document.getElementById(`s-${no}`).innerText = skorTampil;
+        total += parseFloat(skor);
+    });
+    return total;
+}
+
+        function renderRekap() {
+            const container = document.getElementById('listRekap');
+            document.getElementById('countSiswa').innerText = dbNilai.length + " SISWA";
+            if(dbNilai.length === 0) { 
+                container.innerHTML = `<div class='text-center py-10 text-gray-300 text-[10px] italic font-bold'>KOSONG</div>`; 
+                updateAnalisis();
+                return; 
+            }
+            container.innerHTML = dbNilai.map((d, index) => `
+                <div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl flex justify-between items-center group cursor-pointer hover:bg-white hover:border-blue-300 transition-all" onclick="lihatDetail(${index})">
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="text-[9px] font-black uppercase text-gray-400 mb-1 truncate">${d.nama}</div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-gray-500">MURNI <span class="text-blue-600">${d.murni}</span></span>
+                            <span class="text-xl font-black text-gray-800">${Math.round(Math.sqrt(d.murni)*10)}</span>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); hapusData(${index})" class="text-gray-200 hover:text-red-500 p-2"><i class="fa fa-trash-o text-lg"></i></button>
+                </div>
+            `).join('');
+            updateAnalisis();
+        }
+
+        function updateAnalisis() {
+            const container = document.getElementById('analisisButir');
+            if (!container) return;
+            if (dbNilai.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 text-[10px]">Belum ada data</p>`;
+                return;
+            }
+
+            let statsHtml = '<div class="grid grid-cols-5 gap-2">';
+            for (let i = 1; i <= 45; i++) {
+                let jumlahBenar = dbNilai.filter(d => (d.rincianSkor && d.rincianSkor[i] > 0)).length;
+                let persen = Math.round((jumlahBenar / dbNilai.length) * 100);
+                let colorClass = "bg-green-100 text-green-700";
+                if (persen < 30) colorClass = "bg-red-100 text-red-700";
+                else if (persen < 70) colorClass = "bg-amber-100 text-amber-700";
+
+                statsHtml += `
+                    <div class="flex flex-col items-center p-2 rounded-lg border border-gray-100">
+                        <span class="text-[8px] font-bold text-gray-400">#${i}</span>
+                        <span class="text-[10px] font-black ${colorClass.split(' ')[1]}">${persen}%</span>
+                    </div>
+                `;
+            }
+            statsHtml += '</div>';
+            container.innerHTML = statsHtml;
+        }
+
+        // --- FUNGSI TOOLS & IMPORT/EXPORT ---
+
+        function importJawabanSiswa(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1});
+                const rows = json.slice(1);
+                tempImportData = [];
+                rows.forEach(row => {
+                    const nama = row[0];
+                    if(!nama) return;
+                    let jawabanAsli = {}; 
+                    for(let i=1; i<=45; i++) jawabanAsli[i] = String(row[i] || "").toUpperCase().trim();
+                    tempImportData.push({ id: Date.now() + Math.random(), nama, jawabanAsli });
+                });
+                if(tempImportData.length > 0) {
+                    document.getElementById('importStatus').classList.remove('hidden');
+                    document.getElementById('btnLewati').classList.remove('hidden');
+                    prosesAntrean();
+                    alert(tempImportData.length + " Siswa masuk antrean.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function prosesAntrean() {
+            if (tempImportData.length > 0) {
+                const s = tempImportData[0];
+                document.getElementById('importStatus').innerHTML = `<i class="fa fa-users mr-1"></i> Sisa: ${tempImportData.length}`;
+                loadKeTabel(s);
+            } else {
+                document.getElementById('importStatus').classList.add('hidden');
+                document.getElementById('btnLewati').classList.add('hidden');
+                resetTabel();
+            }
+        }
+
+        function loadKeTabel(dataSiswa) {
+            document.getElementById('nomorPeserta').value = dataSiswa.nama;
+            document.querySelectorAll('.ans-in').forEach(inp => {
+                inp.value = dataSiswa.jawabanAsli[inp.dataset.no] || "";
+            });
+            hitung();
+        }
+
+        document.getElementById('btnSimpan').addEventListener('click', function() {
+            const nama = document.getElementById('nomorPeserta').value;
+            if(!nama) return alert("Isi nama!");
+            let jawabanAsli = {}; let rincianSkor = {}; let totalMurni = 0;
+            document.querySelectorAll('.ans-in').forEach(inp => {
+                const no = inp.dataset.no;
+                const skorText = document.getElementById(`s-${no}`).innerText;
+                const skor = parseFloat(skorText);
+                jawabanAsli[no] = inp.value.toUpperCase().trim();
+                rincianSkor[no] = skor; 
+                totalMurni += skor;
+            });
+            
+            totalMurni = parseFloat(totalMurni.toFixed(2));
+            const idx = dbNilai.findIndex(x => x.nama === nama);
+            const entry = { id: Date.now(), nama, murni: totalMurni, jawabanAsli, rincianSkor, waktu: new Date().toLocaleString() };
+            
+            if(idx > -1) dbNilai[idx] = entry; 
+            else dbNilai.unshift(entry);
+            
+            if(tempImportData.length > 0 && tempImportData[0].nama === nama) tempImportData.shift();
+            localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai));
+            renderRekap();
+            if(tempImportData.length > 0) prosesAntrean(); else resetTabel();
+        });
+
+        function lewatiAntrean() { if(tempImportData.length > 0) { tempImportData.shift(); prosesAntrean(); } }
+
+        function lihatDetail(index) {
+            const d = dbNilai[index]; loadKeTabel(d);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetTabel() {
+            document.getElementById('nomorPeserta').value = "";
+            document.querySelectorAll('.ans-in').forEach(i => i.value = "");
+            document.querySelectorAll('[id^=\"s-\"]').forEach(s => s.innerText = "0");
+        }
+
+        function hapusData(index) { if(confirm("Hapus?")) { dbNilai.splice(index, 1); localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai)); renderRekap(); } }
+
+        function downloadFormatKunci() {
+            let d = [["No Soal", "Kunci Jawaban", "Bobot Skor"]];
+            for(let i=1; i<=45; i++) d.push([i, dbKunci[i]||"", dbBobot[i]||1]);
+            const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Kunci"); XLSX.writeFile(wb, "Template_Kunci.xlsx");
+        }
+
+        function downloadFormatJawaban() {
+            let h = ["Nama Siswa"]; for(let i=1; i<=45; i++) h.push("S"+i);
+            const ws = XLSX.utils.aoa_to_sheet([h]); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Jawaban"); XLSX.writeFile(wb, "Template_Jawaban.xlsx");
+        }
+
+        function importKunciDanBobot(event) {
+            const file = event.target.files[0]; const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result); const wb = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                json.forEach(row => {
+                    const no = row["No Soal"]; if(no) { 
+                        dbKunci[no] = String(row["Kunci Jawaban"] || "").toUpperCase(); 
+                        dbBobot[no] = parseFloat(row["Bobot Skor"]) || 0; 
+                    }
+                });
+                localStorage.setItem('koreksi_kunci_v3', JSON.stringify(dbKunci)); localStorage.setItem('koreksi_bobot_v3', JSON.stringify(dbBobot));
+                location.reload();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+function exportExcel() {
+    // 1. Validasi Data Siswa
+    if (dbNilai.length === 0) {
+        alert("Tidak ada data hasil koreksi yang tersimpan!");
+        return;
+    }
+
+    // 2. Ambil & Validasi Identitas (Mata Pelajaran Wajib)
+    const mapelInput = document.getElementById('mapel');
+    const mapel = mapelInput ? mapelInput.value.trim() : "";
+    const jenisUjian = document.getElementById('jenisUjian')?.value || "Ujian";
+    const kelas = document.getElementById('kelas')?.value || "-";
+    const tglRaw = document.getElementById('tglUjian')?.value || "";
+
+    if (!mapel) {
+        alert("Gagal mengunduh: Nama Mata Pelajaran harus diisi!");
+        mapelInput.focus();
+        return;
+    }
+
+    // 3. Susun Header Laporan
+    const info = [
+        ["REKAP NILAI SISWA"],
+        ["Jenis Ujian", ": " + jenisUjian],
+        ["Mata Pelajaran", ": " + mapel],
+        ["Kelas", ": " + kelas],
+        ["Tanggal", ": " + (tglRaw || "-")],
+        [] 
+    ];
+
+    // 4. Susun Header Tabel
+    let headerTabel = ["NO", "NAMA SISWA", "SKOR MURNI", "NILAI AKHIR"];
+    for (let i = 1; i <= 45; i++) {
+        headerTabel.push("S" + i);
+    }
+
+    // 5. Susun Data dari dbNilai
+    const dataTerurut = [...dbNilai].sort((a, b) => a.nama.localeCompare(b.nama));
+    
+    let rowsSiswa = dataTerurut.map((d, index) => {
+        let baris = [
+            index + 1,
+            d.nama,
+            d.murni,
+            Math.round(Math.sqrt(d.murni) * 10)
+        ];
+        
+        // Pastikan jawabanAsli ada sebelum dipetakan
+        for (let i = 1; i <= 45; i++) {
+            baris.push(d.jawabanAsli ? d.jawabanAsli[i] || "-" : "-");
+        }
+        return baris;
+    });
+
+    const dataGabungan = [...info, headerTabel, ...rowsSiswa];
+
+    try {
+        const ws = XLSX.utils.aoa_to_sheet(dataGabungan);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Rekap_Nilai");
+
+        // Penamaan file yang aman
+        const tglFix = tglRaw.replace(/-/g, '') || "000000";
+        const fileNama = `Rekap_${mapel.replace(/[^a-z0-9]/gi, '_')}_${kelas}_${tglFix}.xlsx`;
+        
+        XLSX.writeFile(wb, fileNama);
+    } catch (error) {
+        console.error("Kesalahan Export:", error);
+        alert("Gagal membuat Excel. Pastikan library XLSX sudah terload.");
+    }
+}
+
+        function eksporDatabase() {
+            const blob = new Blob([JSON.stringify({dbNilai, dbKunci, dbBobot})], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Backup.json"; a.click();
+        }
+
+        function imporDatabase(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const data = JSON.parse(ev.target.result);
+                localStorage.setItem('koreksi_detail_v3', JSON.stringify(data.dbNilai));
+                localStorage.setItem('koreksi_kunci_v3', JSON.stringify(data.dbKunci));
+                localStorage.setItem('koreksi_bobot_v3', JSON.stringify(data.dbBobot));
+                location.reload();
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+
+        initTable();
+        renderRekap();
+    
+function hapusSemuaData() {
+    if (confirm("PERINGATAN: Semua data hasil koreksi siswa akan dihapus permanen. Lanjutkan?")) {
+        dbNilai = [];
+        localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai));
+        renderRekap();
+        resetTabel();
+        alert("Seluruh data berhasil dibersihkan.");
+    }
+}
+
+function exportAnalisisPDF() {
+    if (dbNilai.length === 0) return alert("Belum ada data untuk dianalisis!");
+
+    const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
+    const kelas = document.getElementById('kelas').value || "-";
+    const content = document.getElementById('analisisButir').cloneNode(true);
+    
+    // Membuat wrapper untuk tampilan PDF agar rapi
+    const element = document.createElement('div');
+    element.className = "p-10 font-sans";
+    element.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+            <h1 style="font-size: 18px; font-weight: bold; margin: 0;">LAPORAN ANALISIS BUTIR SOAL</h1>
+            <p style="font-size: 12px; margin: 5px 0;">Mata Pelajaran: ${mapel} | Kelas: ${kelas}</p>
+            <p style="font-size: 10px; color: #666;">Dicetak pada: ${new Date().toLocaleString()}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+            ${content.innerHTML}
+        </div>
+        <div style="margin-top: 30px; font-size: 10px;">
+            <p><strong>Keterangan:</strong></p>
+            <span style="color: red;">● SULIT (<30%)</span> &nbsp;&nbsp;
+            <span style="color: orange;">● SEDANG (30%-70%)</span> &nbsp;&nbsp;
+            <span style="color: green;">● MUDAH (>70%)</span>
+        </div>
+    `;
+
+    const opt = {
+        margin:       0.5,
+        filename:     `Analisis_${mapel}_${kelas}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+}
     </script>
 </body>
 </html>
