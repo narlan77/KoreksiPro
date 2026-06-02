@@ -1,1 +1,614 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koreksi Pro v3.1 - Antrean Cerdas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .input-opt { @apply w-10 h-10 border rounded text-center font-bold uppercase focus:ring-2 focus:ring-blue-400 outline-none transition-all; }
+            .kunci-opt { @apply w-10 h-10 border border-dashed border-blue-400 bg-blue-50 text-center font-bold uppercase rounded outline-none; }
+            .bobot-in { @apply w-12 text-center font-bold text-gray-400 bg-transparent border-b border-transparent focus:border-blue-200 outline-none; }
+        }
+        #listRekap::-webkit-scrollbar { width: 4px; }
+        #listRekap::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <h1 class="text-2xl font-black text-blue-600 tracking-tight"><i class="fa fa-check-square-o mr-2"></i>KOREKSI PRO <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full ml-1">V3.1</span></h1>
+
+            <div class="flex gap-2">
+                <button onclick="eksporDatabase()" class="bg-white border shadow-sm px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all"><i class="fa fa-database mr-1 text-blue-500"></i> BACKUP</button>
+                <label class="cursor-pointer bg-white border shadow-sm px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all">
+                    <i class="fa fa-folder-open mr-1 text-amber-500"></i> RESTORE
+                    <input type="file" class="hidden" accept=".json" onchange="imporDatabase(event)">
+                </label>
+                <button onclick="hapusSemuaData()" class="bg-red-50 border border-red-100 shadow-sm px-4 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-100 transition-all">
+                    <i class="fa fa-trash mr-1"></i> HAPUS DB
+                </button>
+            </div>
+        </div>
+<div class="mt-12 space-y-6">
+    <div class="bg-blue-600 rounded-2xl p-6 text-white shadow-lg">
+        <h2 class="text-lg font-black uppercase tracking-tight mb-2">
+            <i class="fa fa-rocket mr-2"></i> TENTANG KOREKSI PRO <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full ml-1">V3.1</span>
+        </h2>
+        <p class="text-xs opacity-90 leading-relaxed">
+            Aplikasi pemeriksaan hasil ujian ini dikolaborasikan dengan "AI (Gemini/Dola)", sehingga memudahkan dalam proses pemeriksaan hasil ujian. <strong>YANG PERLU DIKOREKSI HANYA BAGIAN ESAI SAJA (JIKA ADA)</strong>. Sistem ini menggunakan teknologi AI untuk membaca lembar jawaban fisik dan mengubahnya menjadi data digital yang siap dikoreksi secara otomatis.
+        </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <h3 class="font-black text-gray-800 text-sm uppercase mb-4 flex items-center">
+                <i class="fa fa-camera mr-2 text-blue-500"></i> Langkah Scan dengan Dola
+            </h3>
+            <ul class="space-y-4 text-[11px] text-gray-600">
+                <li class="flex gap-3">
+                    <span class="bg-blue-100 text-blue-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">1</span>
+                    <span>Unduh dan buka aplikasi <strong>Gemini atau Dola</strong> di perangkat Anda.</span>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-blue-100 text-blue-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">2</span>
+                    <span>Ambil foto lembar jawaban siswa dengan klik tanda <strong>+</strong> pada icon kamera di Dola.</span>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-blue-100 text-blue-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">3</span>
+                    <div class="flex-1">
+                        <p class="mb-2">Copy-paste perintah (prompt) berikut setelah memfoto, pada aplikasi Gemini atau Dola:</p>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300 font-mono text-[9px] relative group">
+                            "Buatkan dalam format tabel Excel dengan kolom: Nama Siswa, S1 sampai S45. Gabungkan 9 karakter terakhir dari nomor peserta dengan nama siswa dipisahkan dengan tanda "-". Isi jawaban dari S1–S40 sesuai data, HAPUS SEMUA KARAKTER SELAIN HURUF (buang tanda tambah +, koma, angka, simbol, dll). Untuk kolom S41 sampai S45 kosongkan saja. Masukkan SEMUA data ke dalam satu tabel lengkap."
+                        </div>
+                    </div>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-blue-100 text-blue-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">4</span>
+                    <span>Kirim perintah, tunggu hasilnya, lalu <strong>Copy</strong> tabel tersebut.</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <h3 class="font-black text-gray-800 text-sm uppercase mb-4 flex items-center">
+                <i class="fa fa-sign-in mr-2 text-purple-500"></i> Langkah Import & Koreksi
+            </h3>
+            <ul class="space-y-4 text-[11px] text-gray-600">
+                <li class="flex gap-3">
+                    <span class="bg-purple-100 text-purple-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">1</span>
+                    <span>Pastikan Anda sudah mengunduh <strong>Format Kunci dan Jawaban</strong> terlebih dahulu, kemudian mengimport <strong>Format Kunci</strong> ke dalam aplikasi.</span>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-purple-100 text-purple-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">2</span>
+                    <span>Buka file <strong>Template Jawaban</strong>, paste data dari Dola ke dalamnya, lalu simpan.</span>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-purple-100 text-purple-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">3</span>
+                    <span>Klik tombol <strong>IMPORT JAWABAN</strong> dan pilih file tadi. Siswa akan otomatis masuk antrean.</span>
+                </li>
+                <li class="flex gap-3">
+                    <span class="bg-purple-100 text-purple-600 w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold">4</span>
+                    <span>Klik <strong>Simpan & Lanjut</strong> untuk setiap siswa hingga selesai, lalu unduh hasil Excel-nya.</span>
+                </li>
+            </ul>
+            
+            <div class="mt-6 pt-4 border-t border-gray-100">
+                <p class="text-center font-black text-blue-600 text-xs italic">
+                    Selamat mencoba, tetap semangat!!!
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm grid md:grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">1. Persiapan & Kunci</h3>
+                        <div class="flex gap-2">
+                            <button onclick="downloadFormatKunci()" class="flex-1 bg-gray-50 hover:bg-blue-50 text-blue-700 p-3 rounded-xl border border-blue-100 font-bold text-[11px] transition-all">
+                                <i class="fa fa-key mb-1 block text-lg"></i> FORMAT KUNCI
+                            </button>
+                            <label class="flex-1 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold text-[11px] text-center transition-all shadow-md shadow-blue-100">
+                                <i class="fa fa-upload mb-1 block text-lg"></i> IMPORT KUNCI
+                                <input type="file" class="hidden" accept=".xlsx, .xls" onchange="importKunciDanBobot(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Data Jawaban Siswa</h3>
+                        <div class="flex gap-2">
+                            <button onclick="downloadFormatJawaban()" class="flex-1 bg-gray-50 hover:bg-purple-50 text-purple-700 p-3 rounded-xl border border-purple-100 font-bold text-[11px] transition-all">
+                                <i class="fa fa-file-text-o mb-1 block text-lg"></i> FORMAT JAWABAN
+                            </button>
+                            <label class="flex-1 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-xl font-bold text-[11px] text-center transition-all shadow-md shadow-purple-100">
+                                <i class="fa fa-cloud-upload mb-1 block text-lg"></i> IMPORT JAWABAN
+                                <input type="file" class="hidden" accept=".xlsx, .xls" onchange="importJawabanSiswa(event)">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-gray-100 bg-white sticky top-0 z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 relative">
+                                <input type="text" id="nomorPeserta" class="w-full p-3 pl-10 border-2 border-gray-50 bg-gray-50 rounded-xl font-bold focus:bg-white focus:border-blue-400 outline-none transition-all" placeholder="Nama Siswa...">
+                                <i class="fa fa-user absolute left-4 top-4 text-gray-300"></i>
+                            </div>
+                            <div id="importStatus" class="hidden bg-amber-50 text-amber-600 px-4 py-3 rounded-xl font-black text-[10px] border border-amber-100 animate-pulse uppercase">
+                                <i class="fa fa-hourglass-half mr-1"></i> Antrean Aktif
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                                <tr>
+                                    <th class="p-4 text-gray-400">NO</th>
+                                    <th class="p-4 text-gray-400">KUNCI</th>
+                                    <th class="p-4 text-center text-gray-400">JAWABAN SISWA</th>
+                                    <th class="p-4 text-center text-gray-400">BOBOT</th>
+                                    <th class="p-4 text-center text-gray-400">SKOR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="containerSoal"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-5 bg-gray-50 border-t flex flex-col md:flex-row gap-3">
+                        <button onclick="resetTabel()" class="bg-white border text-gray-400 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all text-xs">RESET</button>
+                        <button onclick="lewatiAntrean()" id="btnLewati" class="hidden bg-amber-100 text-amber-700 px-6 py-3 rounded-xl font-bold hover:bg-amber-200 transition-all text-xs">LEWATI</button>
+                        <button id="btnSimpan" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all uppercase tracking-wider">
+                            SIMPAN DATA & LANJUT <i class="fa fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="p-5 border-b border-gray-100">
+                        <h3 class="font-black text-gray-800 text-[11px] uppercase tracking-widest mb-4">Identitas Ujian</h3>
+                        <div class="grid grid-cols-1 gap-3">
+                            <input type="text" id="mapel" placeholder="Mata Pelajaran" class="p-2 border rounded-lg text-xs outline-none focus:border-blue-400">
+                            <input type="text" id="jenisUjian" placeholder="Jenis Ujian (Contoh: PAS Ganjil)" class="p-2 border rounded-lg text-xs outline-none focus:border-blue-400">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="kelas" placeholder="Kelas" class="p-2 border rounded-lg text-xs outline-none focus:border-blue-400">
+                                <input type="date" id="tglUjian" class="p-2 border rounded-lg text-xs outline-none focus:border-blue-400">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm sticky top-6">
+                    <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="font-black text-gray-800 text-[11px] uppercase tracking-widest">Hasil Koreksi</h3>
+                        <span id="countSiswa" class="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-lg font-bold">0 SISWA</span>
+                    </div>
+                    <div id="listRekap" class="p-4 space-y-3 max-h-[400px] overflow-y-auto"></div>
+                    <div class="p-5 border-t border-gray-100">
+                        <button onclick="exportExcel()" class="w-full bg-green-600 text-white py-4 rounded-xl font-black text-xs hover:bg-green-700 shadow-lg shadow-green-100 transition-all uppercase">
+                            <i class="fa fa-download mr-2"></i> DOWNLOAD HASIL (EXCEL)
+                        </button>
+                    </div>
+
+                    <div class="p-5 border-t border-gray-100">
+                        <h3 class="font-black text-gray-800 text-[11px] uppercase tracking-widest mb-4 flex items-center justify-between">
+                            <span><i class="fa fa-bar-chart mr-2 text-blue-500"></i> Analisis Butir Soal</span>
+                            <button onclick="exportAnalisisPDF()" class="text-blue-600 hover:text-blue-800 text-[10px] font-bold">
+                                <i class="fa fa-file-pdf-o mr-1"></i> CETAK PDF
+                            </button>
+                        </h3>
+                        <div id="analisisButir" class="space-y-4"></div>
+                        <div class="mt-4 grid grid-cols-3 gap-1 text-[8px] font-bold uppercase text-center">
+                            <div class="text-red-500">SULIT (&lt;30%)</div> 
+                            <div class="text-amber-500">SEDANG</div>
+                            <div class="text-green-500">MUDAH (&gt;70%)</div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dbNilai = JSON.parse(localStorage.getItem('koreksi_detail_v3')) || [];
+        let dbKunci = JSON.parse(localStorage.getItem('koreksi_kunci_v3')) || {};
+        let dbBobot = JSON.parse(localStorage.getItem('koreksi_bobot_v3')) || {};
+        let tempImportData = []; 
+
+        const configSoal = [
+            { range: [1, 20], tipe: 'PG', bobot: 1 },
+            { range: [21, 30], tipe: 'PGK', bobot: 2 },
+            { range: [31, 35], tipe: 'BS', bobot: 3 },
+            { range: [36, 40], tipe: 'BS', bobot: 3 },
+            { range: [41, 45], tipe: 'ES', bobot: 6 }
+        ];
+
+        function initTable() {
+            const tbody = document.getElementById('containerSoal');
+            let html = '';
+            configSoal.forEach(g => {
+                for(let i=g.range[0]; i<=g.range[1]; i++){
+                    // 3. Matikan tab index pada bobot skor kecuali untuk esai
+                    const isEsai = g.tipe === 'ES';
+                    const tabBobot = isEsai ? "" : 'tabindex="-1"';
+
+                    html += `<tr class="border-b border-gray-50 group hover:bg-blue-50/30 transition-colors">
+                        <td class="p-4 font-bold text-gray-300 text-[10px]">${i}</td>
+                        <td class="p-2"><input type="text" class="kunci-opt text-[10px]" value="${dbKunci[i]||''}" disabled tabindex="-1"></td>
+                        <td class="p-2 text-center">
+                            <input type="text" class="input-opt ans-in shadow-sm border-gray-200" data-no="${i}" data-tipe="${g.tipe}" oninput="hitung()">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" class="bobot-in text-[11px]" data-no="${i}" value="${dbBobot[i]||g.bobot}" oninput="hitung()" ${tabBobot}>
+                        </td>
+                        <td class="p-2 text-center font-black text-blue-600" id="s-${i}">0</td>
+                    </tr>`;
+                }
+            });
+            tbody.innerHTML = html;
+        }
+
+function hitung() {
+    let total = 0;
+    document.querySelectorAll('.ans-in').forEach(input => {
+        const no = input.dataset.no;
+        const row = input.closest('tr');
+        const tipe = input.dataset.tipe; // Mengambil langsung dari dataset input
+        const ans = input.value.toUpperCase().replace(/\s+/g, ''); 
+        
+        // Perbaikan selector di sini:
+        // Kunci menggunakan class .kunci-opt
+        const key = row.querySelector('.kunci-opt').value.toUpperCase().replace(/\s+/g, '');
+        // Bobot menggunakan class .bobot-in
+        const rowWeight = parseFloat(row.querySelector('.bobot-in').value) || 0;
+        
+        let skor = 0;
+        if (ans !== "" && key !== "") {
+            if (tipe === 'BS') {
+                // Logika Benar-Salah (BS)
+                let matchCount = 0;
+                const keyArr = key.split('');
+                const ansArr = ans.split('');
+                keyArr.forEach((c, idx) => { if (ansArr[idx] === c) matchCount++; });
+                skor = (matchCount / keyArr.length) * rowWeight;
+            } else if (tipe === 'PGK' || tipe === 'JD') {
+                // Logika Pilihan Ganda Kompleks atau Menjodohkan
+                const keyArr = key.split('');
+                const uniqueAns = [...new Set(ans.split(''))];
+                let matchCount = 0;
+                uniqueAns.forEach(c => { if (keyArr.includes(c)) matchCount++; });
+                skor = (matchCount / keyArr.length) * rowWeight;
+            } else { 
+                // Logika PG Biasa atau Esai (Jika kunci cocok)
+                if (ans === key) skor = rowWeight; 
+            }
+        }
+
+        const skorTampil = Number.isInteger(skor) ? skor : skor.toFixed(2);
+        document.getElementById(`s-${no}`).innerText = skorTampil;
+        total += parseFloat(skor);
+    });
+    return total;
+}
+
+        function renderRekap() {
+            const container = document.getElementById('listRekap');
+            document.getElementById('countSiswa').innerText = dbNilai.length + " SISWA";
+            if(dbNilai.length === 0) { 
+                container.innerHTML = `<div class='text-center py-10 text-gray-300 text-[10px] italic font-bold'>KOSONG</div>`; 
+                updateAnalisis();
+                return; 
+            }
+            container.innerHTML = dbNilai.map((d, index) => `
+                <div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl flex justify-between items-center group cursor-pointer hover:bg-white hover:border-blue-300 transition-all" onclick="lihatDetail(${index})">
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="text-[9px] font-black uppercase text-gray-400 mb-1 truncate">${d.nama}</div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-gray-500">MURNI <span class="text-blue-600">${d.murni}</span></span>
+                            <span class="text-xl font-black text-gray-800">${Math.round(Math.sqrt(d.murni)*10)}</span>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); hapusData(${index})" class="text-gray-200 hover:text-red-500 p-2"><i class="fa fa-trash-o text-lg"></i></button>
+                </div>
+            `).join('');
+            updateAnalisis();
+        }
+
+        function updateAnalisis() {
+            const container = document.getElementById('analisisButir');
+            if (!container) return;
+            if (dbNilai.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 text-[10px]">Belum ada data</p>`;
+                return;
+            }
+
+            let statsHtml = '<div class="grid grid-cols-5 gap-2">';
+            for (let i = 1; i <= 45; i++) {
+                let jumlahBenar = dbNilai.filter(d => (d.rincianSkor && d.rincianSkor[i] > 0)).length;
+                let persen = Math.round((jumlahBenar / dbNilai.length) * 100);
+                let colorClass = "bg-green-100 text-green-700";
+                if (persen < 30) colorClass = "bg-red-100 text-red-700";
+                else if (persen < 70) colorClass = "bg-amber-100 text-amber-700";
+
+                statsHtml += `
+                    <div class="flex flex-col items-center p-2 rounded-lg border border-gray-100">
+                        <span class="text-[8px] font-bold text-gray-400">#${i}</span>
+                        <span class="text-[10px] font-black ${colorClass.split(' ')[1]}">${persen}%</span>
+                    </div>
+                `;
+            }
+            statsHtml += '</div>';
+            container.innerHTML = statsHtml;
+        }
+
+        // --- FUNGSI TOOLS & IMPORT/EXPORT ---
+
+        function importJawabanSiswa(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1});
+                const rows = json.slice(1);
+                tempImportData = [];
+                rows.forEach(row => {
+                    const nama = row[0];
+                    if(!nama) return;
+                    let jawabanAsli = {}; 
+                    for(let i=1; i<=45; i++) jawabanAsli[i] = String(row[i] || "").toUpperCase().trim();
+                    tempImportData.push({ id: Date.now() + Math.random(), nama, jawabanAsli });
+                });
+                if(tempImportData.length > 0) {
+                    document.getElementById('importStatus').classList.remove('hidden');
+                    document.getElementById('btnLewati').classList.remove('hidden');
+                    prosesAntrean();
+                    alert(tempImportData.length + " Siswa masuk antrean.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function prosesAntrean() {
+            if (tempImportData.length > 0) {
+                const s = tempImportData[0];
+                document.getElementById('importStatus').innerHTML = `<i class="fa fa-users mr-1"></i> Sisa: ${tempImportData.length}`;
+                loadKeTabel(s);
+            } else {
+                document.getElementById('importStatus').classList.add('hidden');
+                document.getElementById('btnLewati').classList.add('hidden');
+                resetTabel();
+            }
+        }
+
+        function loadKeTabel(dataSiswa) {
+            document.getElementById('nomorPeserta').value = dataSiswa.nama;
+            document.querySelectorAll('.ans-in').forEach(inp => {
+                inp.value = dataSiswa.jawabanAsli[inp.dataset.no] || "";
+            });
+            hitung();
+        }
+
+        document.getElementById('btnSimpan').addEventListener('click', function() {
+            const nama = document.getElementById('nomorPeserta').value;
+            if(!nama) return alert("Isi nama!");
+            let jawabanAsli = {}; let rincianSkor = {}; let totalMurni = 0;
+            document.querySelectorAll('.ans-in').forEach(inp => {
+                const no = inp.dataset.no;
+                const skorText = document.getElementById(`s-${no}`).innerText;
+                const skor = parseFloat(skorText);
+                jawabanAsli[no] = inp.value.toUpperCase().trim();
+                rincianSkor[no] = skor; 
+                totalMurni += skor;
+            });
+            
+            totalMurni = parseFloat(totalMurni.toFixed(2));
+            const idx = dbNilai.findIndex(x => x.nama === nama);
+            const entry = { id: Date.now(), nama, murni: totalMurni, jawabanAsli, rincianSkor, waktu: new Date().toLocaleString() };
+            
+            if(idx > -1) dbNilai[idx] = entry; 
+            else dbNilai.unshift(entry);
+            
+            if(tempImportData.length > 0 && tempImportData[0].nama === nama) tempImportData.shift();
+            localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai));
+            renderRekap();
+            if(tempImportData.length > 0) prosesAntrean(); else resetTabel();
+        });
+
+        function lewatiAntrean() { if(tempImportData.length > 0) { tempImportData.shift(); prosesAntrean(); } }
+
+        function lihatDetail(index) {
+            const d = dbNilai[index]; loadKeTabel(d);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetTabel() {
+            document.getElementById('nomorPeserta').value = "";
+            document.querySelectorAll('.ans-in').forEach(i => i.value = "");
+            document.querySelectorAll('[id^=\"s-\"]').forEach(s => s.innerText = "0");
+        }
+
+        function hapusData(index) { if(confirm("Hapus?")) { dbNilai.splice(index, 1); localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai)); renderRekap(); } }
+
+        function downloadFormatKunci() {
+            let d = [["No Soal", "Kunci Jawaban", "Bobot Skor"]];
+            for(let i=1; i<=45; i++) d.push([i, dbKunci[i]||"", dbBobot[i]||1]);
+            const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Kunci"); XLSX.writeFile(wb, "Template_Kunci.xlsx");
+        }
+
+        function downloadFormatJawaban() {
+            let h = ["Nama Siswa"]; for(let i=1; i<=45; i++) h.push("S"+i);
+            const ws = XLSX.utils.aoa_to_sheet([h]); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Jawaban"); XLSX.writeFile(wb, "Template_Jawaban.xlsx");
+        }
+
+        function importKunciDanBobot(event) {
+            const file = event.target.files[0]; const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result); const wb = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                json.forEach(row => {
+                    const no = row["No Soal"]; if(no) { 
+                        dbKunci[no] = String(row["Kunci Jawaban"] || "").toUpperCase(); 
+                        dbBobot[no] = parseFloat(row["Bobot Skor"]) || 0; 
+                    }
+                });
+                localStorage.setItem('koreksi_kunci_v3', JSON.stringify(dbKunci)); localStorage.setItem('koreksi_bobot_v3', JSON.stringify(dbBobot));
+                location.reload();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+function exportExcel() {
+    // 1. Validasi Data Siswa
+    if (dbNilai.length === 0) {
+        alert("Tidak ada data hasil koreksi yang tersimpan!");
+        return;
+    }
+
+    // 2. Ambil & Validasi Identitas (Mata Pelajaran Wajib)
+    const mapelInput = document.getElementById('mapel');
+    const mapel = mapelInput ? mapelInput.value.trim() : "";
+    const jenisUjian = document.getElementById('jenisUjian')?.value || "Ujian";
+    const kelas = document.getElementById('kelas')?.value || "-";
+    const tglRaw = document.getElementById('tglUjian')?.value || "";
+
+    if (!mapel) {
+        alert("Gagal mengunduh: Nama Mata Pelajaran harus diisi!");
+        mapelInput.focus();
+        return;
+    }
+
+    // 3. Susun Header Laporan
+    const info = [
+        ["REKAP NILAI SISWA"],
+        ["Jenis Ujian", ": " + jenisUjian],
+        ["Mata Pelajaran", ": " + mapel],
+        ["Kelas", ": " + kelas],
+        ["Tanggal", ": " + (tglRaw || "-")],
+        [] 
+    ];
+
+    // 4. Susun Header Tabel
+    let headerTabel = ["NO", "NAMA SISWA", "SKOR MURNI", "NILAI AKHIR"];
+    for (let i = 1; i <= 45; i++) {
+        headerTabel.push("S" + i);
+    }
+
+    // 5. Susun Data dari dbNilai
+    const dataTerurut = [...dbNilai].sort((a, b) => a.nama.localeCompare(b.nama));
+    
+    let rowsSiswa = dataTerurut.map((d, index) => {
+        let baris = [
+            index + 1,
+            d.nama,
+            d.murni,
+            Math.round(Math.sqrt(d.murni) * 10)
+        ];
+        
+        // Pastikan jawabanAsli ada sebelum dipetakan
+        for (let i = 1; i <= 45; i++) {
+            baris.push(d.jawabanAsli ? d.jawabanAsli[i] || "-" : "-");
+        }
+        return baris;
+    });
+
+    const dataGabungan = [...info, headerTabel, ...rowsSiswa];
+
+    try {
+        const ws = XLSX.utils.aoa_to_sheet(dataGabungan);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Rekap_Nilai");
+
+        // Penamaan file yang aman
+        const tglFix = tglRaw.replace(/-/g, '') || "000000";
+        const fileNama = `Rekap_${mapel.replace(/[^a-z0-9]/gi, '_')}_${kelas}_${tglFix}.xlsx`;
+        
+        XLSX.writeFile(wb, fileNama);
+    } catch (error) {
+        console.error("Kesalahan Export:", error);
+        alert("Gagal membuat Excel. Pastikan library XLSX sudah terload.");
+    }
+}
+
+        function eksporDatabase() {
+            const blob = new Blob([JSON.stringify({dbNilai, dbKunci, dbBobot})], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Backup.json"; a.click();
+        }
+
+        function imporDatabase(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const data = JSON.parse(ev.target.result);
+                localStorage.setItem('koreksi_detail_v3', JSON.stringify(data.dbNilai));
+                localStorage.setItem('koreksi_kunci_v3', JSON.stringify(data.dbKunci));
+                localStorage.setItem('koreksi_bobot_v3', JSON.stringify(data.dbBobot));
+                location.reload();
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+
+        initTable();
+        renderRekap();
+    
+function hapusSemuaData() {
+    if (confirm("PERINGATAN: Semua data hasil koreksi siswa akan dihapus permanen. Lanjutkan?")) {
+        dbNilai = [];
+        localStorage.setItem('koreksi_detail_v3', JSON.stringify(dbNilai));
+        renderRekap();
+        resetTabel();
+        alert("Seluruh data berhasil dibersihkan.");
+    }
+}
+
+function exportAnalisisPDF() {
+    if (dbNilai.length === 0) return alert("Belum ada data untuk dianalisis!");
+
+    const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
+    const kelas = document.getElementById('kelas').value || "-";
+    const content = document.getElementById('analisisButir').cloneNode(true);
+    
+    // Membuat wrapper untuk tampilan PDF agar rapi
+    const element = document.createElement('div');
+    element.className = "p-10 font-sans";
+    element.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+            <h1 style="font-size: 18px; font-weight: bold; margin: 0;">LAPORAN ANALISIS BUTIR SOAL</h1>
+            <p style="font-size: 12px; margin: 5px 0;">Mata Pelajaran: ${mapel} | Kelas: ${kelas}</p>
+            <p style="font-size: 10px; color: #666;">Dicetak pada: ${new Date().toLocaleString()}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+            ${content.innerHTML}
+        </div>
+        <div style="margin-top: 30px; font-size: 10px;">
+            <p><strong>Keterangan:</strong></p>
+            <span style="color: red;">● SULIT (<30%)</span> &nbsp;&nbsp;
+            <span style="color: orange;">● SEDANG (30%-70%)</span> &nbsp;&nbsp;
+            <span style="color: green;">● MUDAH (>70%)</span>
+        </div>
+    `;
+
+    const opt = {
+        margin:       0.5,
+        filename:     `Analisis_${mapel}_${kelas}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+}
+    </script>
+</body>
+</html>
 
