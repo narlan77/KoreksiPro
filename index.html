@@ -11,7 +11,7 @@
     <style type="text/tailwindcss">
         @layer utilities {
             .input-opt { @apply w-10 h-10 border rounded text-center font-bold uppercase focus:ring-2 focus:ring-blue-400 outline-none transition-all; }
-            .kunci-opt { @apply w-10 h-10 border border-dashed border-blue-400 bg-blue-50 text-center font-bold uppercase rounded outline-none; }
+            .kunci-opt { @apply w-10 h-10 border border-dashed border-blue-400 bg-blue-50 text-center font-bold uppercase rounded outline-none cursor-pointer focus:ring-2 focus:ring-green-400 focus:border-green-400 focus:bg-green-50 transition-all; }
             .bobot-in { @apply w-12 text-center font-bold text-gray-400 bg-transparent border-b border-transparent focus:border-blue-200 outline-none; }
         }
         #listRekap::-webkit-scrollbar { width: 4px; }
@@ -21,9 +21,9 @@
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
     <div class="container mx-auto px-4 py-6 max-w-6xl">
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 class="text-2xl font-black text-blue-600 tracking-tight"><i class="fa fa-check-square-o mr-2"></i>KOREKSI PRO <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full ml-2">v3.1</span></h1>
+            <h1 class="text-2xl font-black text-blue-600 tracking-tight"><i class="fa fa-check-square-o mr-2"></i>KOREKSI PRO <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full m[...]
             <div class="flex gap-2">
-                <button onclick="eksporDatabase()" class="bg-white border shadow-sm px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all"><i class="fa fa-database mr-1 text-blue-600"></i> EXPORT DB</button>
+                <button onclick="eksporDatabase()" class="bg-white border shadow-sm px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all"><i class="fa fa-database mr-1 text-blue-[...]
                 <label class="cursor-pointer bg-white border shadow-sm px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all">
                     <i class="fa fa-folder-open mr-1 text-amber-500"></i> RESTORE
                     <input type="file" class="hidden" accept=".json" onchange="imporDatabase(event)">
