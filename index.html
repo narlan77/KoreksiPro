@@ -94,17 +94,21 @@
             `).join('');
         }
 
-        function updateKunci(index, value) {
-            const allowed = ['A', 'B', 'C', 'D', 'E'];
-            if (allowed.includes(value.toUpperCase())) {
-                dataKunci[index].kunci = value.toUpperCase();
-                console.log(`Kunci No ${index + 1} diubah menjadi: ${value}`);
-                // Panggil fungsi hitung skor di sini jika ada
-            } else {
-                alert("Gunakan pilihan A, B, C, D, atau E");
-                renderTabelKunci(); // Refresh untuk mengembalikan nilai lama
-            }
-        }
+    function updateKunci(el) {
+    const nilaiBaru = el.value.toUpperCase();
+    // Validasi: pastikan hanya A-E atau karakter yang diperbolehkan
+    if (!/^[A-E]$/.test(nilaiBaru)) {
+        alert("Kunci harus berupa huruf A-E");
+        el.value = el.defaultValue; // Kembalikan ke nilai sebelumnya jika salah
+        return;
+    }
+    
+    // Logika simpan ke array database Anda
+    // Contoh: database[indeks].kunci = nilaiBaru;
+    
+    // Panggil fungsi hitung ulang nilai secara otomatis
+    hitungUlangSkor(); 
+    }
 
         function updateBobot(index, value) {
             dataKunci[index].bobot = parseFloat(value) || 0;
